@@ -4,55 +4,46 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
-
+	// "time"
 	kafka "github.com/segmentio/kafka-go"
 )
 
 func main() {
 	fmt.Println("helo word")
-	topic := "operational_data_batch"
-	partion := 0
-	context, cancel := context.WithCancel(context.Background());
-	conn, err := kafka.DialLeader(context, 
-		"tcp",
-		"kuka-connect-kafka-0.kuka-connect-kafka.kuka-connect-dev.svc.digital-dev.kukaplus.com:9092",
-		topic,
-		partion)
-	if err != nil {
-		log.Fatal("failed to dial leader:", err)
-	}
+    r := kafka.NewReader(kafka.ReaderConfig{
+        Brokers: []string{"kuka-connect-kafka-0.kuka-connect-kafka.kuka-connect-dev.svc.digital-dev.kukaplus.com:9092"},
+        Topic: "operational_data_batch",
+        GroupID: "ning-test",
+    })
+    
+    messageChan := make(chan kafka.Message)
+    // kafka get message
+    go kafkaConsumeChannel(r, messageChan)
+    // consume kafka message
+    go consumeKafkaMessage(messageChan)
+    // main loop
+    for {
 
-	conn.SetReadDeadline(time.Now().Add(10*time.Second))
-	batch := conn.ReadBatch(10e3, 1e6)
-	
-
-	b := make([]byte, 10e3)
-	go cancelProcess(cancel)
-	for {
-		_, err := batch.Read(b)
-		if err != nil {
-			break
-		}
-		fmt.Println(string(b))
-	}
-
-	if err := batch.Close(); err != nil {
-		log.Fatal(" failed to close batch:", err)
-	}
-
-	if err := conn.Close(); err != nil {
-		log.Fatal("failed to close connection:", err)
-	}
-
+    }
 }
 
-func cancelProcess(cancel context.CancelFunc) {
-	time.Sleep(1*time.Second)
-	// cancel()
-	fmt.Println("*********************")
-	fmt.Println("*********************")
-	fmt.Println("Cancel kafka")
-	fmt.Println("*********************")
-	fmt.Println("*********************")
+func kafkaConsumeChannel(r *kafka.Reader, ch chan kafka.Message) {
+    for{
+        message, err := r.ReadMessage(context.Background())
+        if err != nil {
+            log.Fatal(err)
+            break
+        }
+        ch <- message
+    }
 }
+
+func consumeKafkaMessage(ch chan kafka.Message) {
+    for {
+        select {
+        case message := <- ch:
+            fmt.Printf("message at offset %d: %s = %s \n", message.Offset, string(message.Key), string(message.Value))
+        }
+    }
+} 
+
