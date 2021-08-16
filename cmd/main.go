@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+    "encoding/json"
 	// "time"
 	kafka "github.com/segmentio/kafka-go"
+    "github.com/heathkang/clickhouse-kafka/internal/data"
+
 )
 
 func main() {
@@ -41,8 +44,15 @@ func kafkaConsumeChannel(r *kafka.Reader, ch chan kafka.Message) {
 func consumeKafkaMessage(ch chan kafka.Message) {
     for {
         select {
+        // 1. 1 second interval; 
         case message := <- ch:
-            fmt.Printf("message at offset %d: %s = %s \n", message.Offset, string(message.Key), string(message.Value))
+            msg := data.OperationalData{}
+            err := json.Unmarshal(message.Value, &msg)
+            if err != nil {
+                log.Fatal("Wrong data format for json")
+            }
+            fmt.Printf("message at offset %d: %s = %s \n", message.Offset, string(message.Key), msg.BaseName)
+        // 2. 1000 number data;
         }
     }
 } 
