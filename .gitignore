@@ -1,4 +1,6 @@
 .vscode/
 .idea/
 logs/
+grafana/
+clickhouse_database/
 *.log

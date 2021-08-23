@@ -1,0 +1,68 @@
+version: "3"
+services:
+  clickhouse-server:
+    image: "yandex/clickhouse-server:latest"
+    ports:
+      - "18123:8123"
+      - "9000:9000"
+      - "9009:9009"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - ./clickhouse_database:/var/lib/clickhouse
+
+  grafana-server:
+    image: "grafana/grafana:latest"
+    ports:
+      - "3000:3000"
+    environment:
+      GF_INSTALL_PLUGINS: vertamedia-clickhouse-datasource
+    volumes:
+      - ./grafana:/var/lib/grafana
+  
+  zookeeper:
+    image: docker.io/bitnami/zookeeper:3.7
+    ports:
+      - "12181:2181"
+    volumes:
+      - "zookeeper_data:/bitnami"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    image: docker.io/bitnami/kafka:2
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    volumes:
+      - "kafka_data:/bitnami"
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092, INTERNAL://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092,INTERNAL://kafka:9093
+    depends_on:
+      - zookeeper
+  
+  virtual-factory-go:
+    image: heathkang/virtual-factory-go:latest
+    environment: 
+      - MQTT_HOST=192.168.12.133
+  
+  kafka-mqtt-go:
+    image: heathkang/mqtt-kafka-go:latest
+    environment: 
+      - MQTT_HOST=192.168.12.133
+      - KAFKA_HOST_PORT=kafka:9093
+    depends_on: 
+      - kafka 
+
+volumes:
+  zookeeper_data:
+    driver: local
+  kafka_data:
+    driver: local
