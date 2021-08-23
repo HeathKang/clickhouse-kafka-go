@@ -14,7 +14,7 @@ import (
 func main() {
 	fmt.Println("helo word")
     r := kafka.NewReader(kafka.ReaderConfig{
-        Brokers: []string{"kuka-connect-kafka-0.kuka-connect-kafka.kuka-connect-dev.svc.digital-dev.kukaplus.com:9092"},
+        Brokers: []string{"127.0.0.1:9092"},
         Topic: "operational_data_batch",
         GroupID: "ning-test",
     })
@@ -51,7 +51,7 @@ func consumeKafkaMessage(ch chan kafka.Message) {
             if err != nil {
                 log.Fatal("Wrong data format for json")
             }
-            fmt.Printf("message at offset %d: %s = %s \n", message.Offset, string(message.Key), msg.BaseName)
+            fmt.Printf("message at offset %d: %s = %s \n", message.Offset, string(message.Key), string(message.Value))
         // 2. 1000 number data;
         }
     }
